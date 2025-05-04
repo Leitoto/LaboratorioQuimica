@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratorio Químico Virtual</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #1a5276;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .menu {
+            flex: 1;
+            min-width: 250px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .content {
+            flex: 3;
+            min-width: 300px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        #experimentLog {
+            height: 500px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 20px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            white-space: pre-line;
+        }
+        .log-entry {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .log-title {
+            font-weight: bold;
+            color: #1a5276;
+            margin-bottom: 5px;
+        }
+        .log-step {
+            margin-left: 20px;
+            color: #555;
+        }
+        .log-result {
+            font-style: italic;
+            color: #27ae60;
+            margin-top: 5px;
+        }
+        .log-explanation {
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        .inventory {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .inventory-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        .inventory-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        .clean-btn {
+            background-color: #2ecc71;
+        }
+        .clean-btn:hover {
+            background-color: #27ae60;
+        }
+        .exit-btn {
+            background-color: #e74c3c;
+        }
+        .exit-btn:hover {
+            background-color: #c0392b;
+        }
+        .material-in-use {
+            border-left: 4px solid #e74c3c;
+        }
+        .material-dirty {
+            border-left: 4px solid #f39c12;
+        }
+        .material-clean {
+            border-left: 4px solid #2ecc71;
+        }
+        .reagent-low {
+            border-left: 4px solid #f39c12;
+        }
+        .reagent-empty {
+            border-left: 4px solid #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <h1>Laboratorio Químico Virtual</h1>
+    
+    <div class="container">
+        <div class="menu">
+            <h2>Menú Principal</h2>
+            <button id="showInventory">Mostrar inventario</button>
+            <button id="neutralizationExp">Experimento: Neutralización Ácido-Base</button>
+            <button id="precipitationExp">Experimento: Reacción de Precipitación</button>
+            <button id="decompositionExp">Experimento: Descomposición Catalítica</button>
+            <button id="redoxExp">Experimento: Valoración Redox</button>
+            <button id="complexExp">Experimento: Complejos de Cobalto</button>
+            <button id="crystallizationExp">Experimento: Cristalización</button>
+            <button id="cleanMaterials" class="clean-btn">Limpiar materiales</button>
+            <button id="exit" class="exit-btn">Salir</button>
+        </div>
+        
+        <div class="content">
+            <h2 id="contentTitle">Bienvenido al Laboratorio Virtual</h2>
+            <div id="experimentLog"></div>
+        </div>
+    </div>
+
+    <script>
+        // Enumeración de materiales de laboratorio
+        const MaterialLaboratorio = {
+            VasoDePrecipitados: "Vaso de Precipitados",
+            MatrazErlenmeyer: "Matraz Erlenmeyer",
+            Probeta: "Probeta",
+            Pipeta: "Pipeta",
+            Bureta: "Bureta",
+            TuboDeEnsayo: "Tubo de Ensayo",
+            Cristalizador: "Cristalizador",
+            Embudo: "Embudo",
+            SoporteUniversal: "Soporte Universal",
+            PinzasParaTuboDeEnsayo: "Pinzas para Tubo de Ensayo",
+            MecheroBunsen: "Mechero Bunsen",
+            Termometro: "Termómetro",
+            Balanza: "Balanza",
+            AgitadorMagnetico: "Agitador Magnético",
+            VarillaDeAgitacion: "Varilla de Agitación",
+            EmbudoBuchner: "Embudo Buchner",
+            Kitasato: "Kitasato",
+            Refrigerante: "Refrigerante",
+            Condensador: "Condensador",
+            VidrioDeReloj: "Vidrio de Reloj",
+            Gradilla: "Gradilla",
+            PinzaDeMadera: "Pinza de Madera",
+            Cucharilla: "Cucharilla",
+            Espatula: "Espátula",
+            CapsulaDePorcelana: "Cápsula de Porcelana",
+            TrianguloDePorcelana: "Triángulo de Porcelana",
+            TelaMetalica: "Tela Metálica",
+            Mortero: "Mortero",
+            FrascoReactivo: "Frasco Reactivo",
+            Gotero: "Gotero"
+        };
+
+        // Enumeración de reactivos comunes
+        const Reactivo = {
+            AguaDestilada: "Agua Destilada",
+            AcidoClorhidrico: "Ácido Clorhídrico",
+            AcidoSulfurico: "Ácido Sulfúrico",
+            AcidoNitrico: "Ácido Nítrico",
+            HidroxidoDeSodio: "Hidróxido de Sodio",
+            HidroxidoDePotasio: "Hidróxido de Potasio",
+            CloruroDeSodio: "Cloruro de Sodio",
+            SulfatoDeCobre: "Sulfato de Cobre",
+            PermanganatoDePotasio: "Permanganato de Potasio",
+            BicarbonatoDeSodio: "Bicarbonato de Sodio",
+            Etanol: "Etanol",
+            Metanol: "Metanol",
+            Acetona: "Acetona",
+            Fenolftaleina: "Fenolftaleína",
+            AzulDeMetileno: "Azul de Metileno",
+            Yodo: "Yodo",
+            AguaOxigenada: "Agua Oxigenada",
+            NitratoDePlata: "Nitrato de Plata",
+            CloruroDeBario: "Cloruro de Bario",
+            AcidoAcetico: "Ácido Acético",
+            OxalatoDeSodio: "Oxalato de Sodio",
+            DicromatoDePotasio: "Dicromato de Potasio",
+            SulfatoFerroso: "Sulfato Ferroso",
+            CloruroFerrico: "Cloruro Férrico",
+            HidroxidoDeCalcio: "Hidróxido de Calcio",
+            CarbonatoDeCalcio: "Carbonato de Calcio",
+            SulfatoDeNiquel: "Sulfato de Níquel",
+            CloruroDeCobalto: "Cloruro de Cobalto",
+            NitratoDePotasio: "Nitrato de Potasio",
+            TiocianatoDePotasio: "Tiocianato de Potasio"
+        };
+
+        // Clase que representa un material de laboratorio
+        class Material {
+            constructor(tipo, volumen = 0) {
+                this.Tipo = tipo;
+                this.Nombre = tipo;
+                this.Volumen = volumen;
+                this.Limpio = true;
+                this.EnUso = false;
+            }
+
+            usar() {
+                if (this.EnUso) {
+                    addToLog(`El ${this.Nombre} ya está en uso.`);
+                    return false;
+                }
+
+                if (!this.Limpio) {
+                    addToLog(`Advertencia: El ${this.Nombre} no está limpio.`);
+                }
+
+                this.EnUso = true;
+                addToLog(`Usando ${this.Nombre}...`);
+                return true;
+            }
+
+            dejarDeUsar() {
+                this.EnUso = false;
+                this.Limpio = false;
+                addToLog(`${this.Nombre} guardado (ahora está sucio).`);
+            }
+
+            limpiar() {
+                this.Limpio = true;
+                addToLog(`${this.Nombre} ha sido limpiado.`);
+            }
+
+            toString() {
+                return `${this.Nombre} (${this.Volumen} mL) - ${this.Limpio ? "Limpio" : "Sucio"} - ${this.EnUso ? "En uso" : "Disponible"}`;
+            }
+
+            getClass() {
+                let classes = "inventory-item";
+                if (this.EnUso) classes += " material-in-use";
+                else if (!this.Limpio) classes += " material-dirty";
+                else classes += " material-clean";
+                return classes;
+            }
+        }
+
+        // Clase que representa un reactivo
+        class ReactivoQuimico {
+            constructor(tipo, cantidad, unidad = "mL", concentracion = 1.0) {
+                this.Tipo = tipo;
+                this.Nombre = tipo;
+                this.Cantidad = cantidad;
+                this.Unidad = unidad;
+                this.Concentracion = concentracion;
+                this.Formula = this.obtenerFormula(tipo);
+                this.Estado = unidad === "mL" ? "Líquido" : "Sólido";
+            }
+
+            obtenerFormula(tipo) {
+                const formulas = {
+                    [Reactivo.AguaDestilada]: "H₂O",
+                    [Reactivo.AcidoClorhidrico]: "HCl",
+                    [Reactivo.AcidoSulfurico]: "H₂SO₄",
+                    [Reactivo.AcidoNitrico]: "HNO₃",
+                    [Reactivo.HidroxidoDeSodio]: "NaOH",
+                    [Reactivo.HidroxidoDePotasio]: "KOH",
+                    [Reactivo.CloruroDeSodio]: "NaCl",
+                    [Reactivo.SulfatoDeCobre]: "CuSO₄",
+                    [Reactivo.PermanganatoDePotasio]: "KMnO₄",
+                    [Reactivo.BicarbonatoDeSodio]: "NaHCO₃",
+                    [Reactivo.Etanol]: "C₂H₅OH",
+                    [Reactivo.Metanol]: "CH₃OH",
+                    [Reactivo.Acetona]: "C₃H₆O",
+                    [Reactivo.Fenolftaleina]: "C₂₀H₁₄O₄",
+                    [Reactivo.AzulDeMetileno]: "C₁₆H₁₈ClN₃S",
+                    [Reactivo.Yodo]: "I₂",
+                    [Reactivo.AguaOxigenada]: "H₂O₂",
+                    [Reactivo.NitratoDePlata]: "AgNO₃",
+                    [Reactivo.CloruroDeBario]: "BaCl₂",
+                    [Reactivo.AcidoAcetico]: "CH₃COOH",
+                    [Reactivo.OxalatoDeSodio]: "Na₂C₂O₄",
+                    [Reactivo.DicromatoDePotasio]: "K₂Cr₂O₇",
+                    [Reactivo.SulfatoFerroso]: "FeSO₄",
+                    [Reactivo.CloruroFerrico]: "FeCl₃",
+                    [Reactivo.HidroxidoDeCalcio]: "Ca(OH)₂",
+                    [Reactivo.CarbonatoDeCalcio]: "CaCO₃",
+                    [Reactivo.SulfatoDeNiquel]: "NiSO₄",
+                    [Reactivo.CloruroDeCobalto]: "CoCl₂",
+                    [Reactivo.NitratoDePotasio]: "KNO₃",
+                    [Reactivo.TiocianatoDePotasio]: "KSCN"
+                };
+                return formulas[tipo] || "Desconocida";
+            }
+
+            usarReactivo(cantidadUsada) {
+                if (cantidadUsada > this.Cantidad) {
+                    addToLog(`No hay suficiente ${this.Nombre}. Disponible: ${this.Cantidad} ${this.Unidad}`);
+                    return false;
+                }
+
+                this.Cantidad -= cantidadUsada;
+                addToLog(`Se usaron ${cantidadUsada} ${this.Unidad} de ${this.Nombre}. Restante: ${this.Cantidad} ${this.Unidad}`);
+                return true;
+            }
+
+            toString() {
+                return `${this.Nombre} (${this.Formula}) - ${this.Cantidad} ${this.Unidad} - ${this.Estado} - ${this.Concentracion}M`;
+            }
+
+            getClass() {
+                let classes = "inventory-item";
+                if (this.Cantidad <= 0) classes += " reagent-empty";
+                else if (this.Cantidad < 10) classes += " reagent-low";
+                return classes;
+            }
+        }
+
+        // Clase principal del laboratorio virtual
+        class Laboratorio {
+            constructor(nombre) {
+                this.Nombre = nombre;
+                this.Materiales = [];
+                this.Reactivos = [];
+                this.inicializarLaboratorio();
+            }
+
+            inicializarLaboratorio() {
+                // Inicializar materiales comunes
+                this.Materiales.push(new Material(MaterialLaboratorio.VasoDePrecipitados, 250));
+                this.Materiales.push(new Material(MaterialLaboratorio.VasoDePrecipitados, 500));
+                this.Materiales.push(new Material(MaterialLaboratorio.MatrazErlenmeyer, 250));
+                this.Materiales.push(new Material(MaterialLaboratorio.Probeta, 100));
+                this.Materiales.push(new Material(MaterialLaboratorio.Pipeta, 10));
+                this.Materiales.push(new Material(MaterialLaboratorio.Bureta, 50));
+                this.Materiales.push(new Material(MaterialLaboratorio.TuboDeEnsayo, 20));
+                this.Materiales.push(new Material(MaterialLaboratorio.TuboDeEnsayo, 20));
+                this.Materiales.push(new Material(MaterialLaboratorio.TuboDeEnsayo, 20));
+                this.Materiales.push(new Material(MaterialLaboratorio.MecheroBunsen));
+                this.Materiales.push(new Material(MaterialLaboratorio.SoporteUniversal));
+                this.Materiales.push(new Material(MaterialLaboratorio.PinzasParaTuboDeEnsayo));
+                this.Materiales.push(new Material(MaterialLaboratorio.Termometro));
+                this.Materiales.push(new Material(MaterialLaboratorio.Balanza));
+                this.Materiales.push(new Material(MaterialLaboratorio.VarillaDeAgitacion));
+                this.Materiales.push(new Material(MaterialLaboratorio.Gradilla));
+                this.Materiales.push(new Material(MaterialLaboratorio.CapsulaDePorcelana));
+                this.Materiales.push(new Material(MaterialLaboratorio.TelaMetalica));
+                this.Materiales.push(new Material(MaterialLaboratorio.TrianguloDePorcelana));
+                this.Materiales.push(new Material(MaterialLaboratorio.Mortero));
+                this.Materiales.push(new Material(MaterialLaboratorio.Gotero));
+                this.Materiales.push(new Material(MaterialLaboratorio.FrascoReactivo));
+
+                // Inicializar reactivos comunes
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.AguaDestilada, 2000, "mL"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.AcidoClorhidrico, 500, "mL", 1.0));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.AcidoSulfurico, 500, "mL", 0.5));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.HidroxidoDeSodio, 500, "g"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.CloruroDeSodio, 300, "g"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.SulfatoDeCobre, 200, "g"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.PermanganatoDePotasio, 100, "g"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.BicarbonatoDeSodio, 300, "g"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.Etanol, 1000, "mL"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.Fenolftaleina, 100, "mL"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.AguaOxigenada, 200, "mL", 3.0));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.NitratoDePlata, 50, "g"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.CloruroDeBario, 100, "g"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.AcidoAcetico, 500, "mL"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.OxalatoDeSodio, 150, "g"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.DicromatoDePotasio, 100, "g"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.SulfatoFerroso, 150, "g"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.CloruroFerrico, 100, "g"));
+                this.Reactivos.push(new ReactivoQuimico(Reactivo.TiocianatoDePotasio, 80, "g"));
+            }
+
+            mostrarInventario() {
+                document.getElementById('contentTitle').textContent = `Inventario del Laboratorio: ${this.Nombre}`;
+                const log = document.getElementById('experimentLog');
+                log.innerHTML = '';
+                
+                const materialsDiv = document.createElement('div');
+                materialsDiv.innerHTML = '<h3>Materiales:</h3>';
+                const materialsList = document.createElement('div');
+                materialsList.className = 'inventory';
+                
+                this.Materiales.forEach(material => {
+                    const item = document.createElement('div');
+                    item.className = material.getClass();
+                    item.textContent = material.toString();
+                    materialsList.appendChild(item);
+                });
+                
+                materialsDiv.appendChild(materialsList);
+                log.appendChild(materialsDiv);
+                
+                const reagentsDiv = document.createElement('div');
+                reagentsDiv.innerHTML = '<h3>Reactivos:</h3>';
+                const reagentsList = document.createElement('div');
+                reagentsList.className = 'inventory';
+                
+                this.Reactivos.forEach(reactivo => {
+                    const item = document.createElement('div');
+                    item.className = reactivo.getClass();
+                    item.textContent = reactivo.toString();
+                    reagentsList.appendChild(item);
+                });
+                
+                reagentsDiv.appendChild(reagentsList);
+                log.appendChild(reagentsDiv);
+            }
+
+            // Experimento 1: Neutralización Ácido-Base
+            realizarExperimentoNeutralizacion() {
+                document.getElementById('contentTitle').textContent = 'Experimento: Neutralización Ácido-Base';
+                clearLog();
+                addToLog("=== Experimento: Neutralización Ácido-Base ===");
+                addToLog("Objetivo: Determinar el punto de neutralización usando un indicador ácido-base.\n");
+                
+                try {
+                    const vaso250 = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.VasoDePrecipitados && m.Volumen === 250 && !m.EnUso);
+                    const pipeta = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.Pipeta && !m.EnUso);
+                    const agitador = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.VarillaDeAgitacion && !m.EnUso) || 
+                                    this.Materiales.find(m => m.Tipo === MaterialLaboratorio.VarillaDeAgitacion);
+
+                    const hcl = this.Reactivos.find(r => r.Tipo === Reactivo.AcidoClorhidrico);
+                    const naoh = this.Reactivos.find(r => r.Tipo === Reactivo.HidroxidoDeSodio);
+                    const fenolftaleina = this.Reactivos.find(r => r.Tipo === Reactivo.Fenolftaleina);
+
+                    if (!vaso250 || !pipeta || !hcl || !naoh || !fenolftaleina) {
+                        throw new Error("Faltan materiales o reactivos para realizar el experimento");
+                    }
+
+                    vaso250.usar();
+                    pipeta.usar();
+                    if (agitador) agitador.usar();
+
+                    addToLog("\nPasos del experimento:");
+                    addToLog("1. Añadir 50 mL de HCl al vaso de precipitados");
+                    hcl.usarReactivo(50);
+
+                    addToLog("2. Añadir 2 gotas de fenolftaleina");
+                    fenolftaleina.usarReactivo(2);
+
+                    addToLog("3. Añadir lentamente NaOH hasta cambio de color (rosa pálido)");
+                    naoh.usarReactivo(15); // Simulación de cantidad necesaria
+
+                    addToLog("\nResultado: La solución cambió a color rosa pálido, indicando neutralización completa.", "result");
+                    addToLog("Explicación: La fenolftaleina es incolora en medio ácido y rosa en medio básico.", "explanation");
+
+                    vaso250.dejarDeUsar();
+                    pipeta.dejarDeUsar();
+                    if (agitador) agitador.dejarDeUsar();
+                } catch (error) {
+                    addToLog(`Error: ${error.message}`, "error");
+                }
+            }
+
+            // Experimento 2: Reacción de Precipitación
+            realizarExperimentoPrecipitacion() {
+                document.getElementById('contentTitle').textContent = 'Experimento: Reacción de Precipitación';
+                clearLog();
+                addToLog("=== Experimento: Reacción de Precipitación ===");
+                addToLog("Objetivo: Observar la formación de un precipitado mediante una reacción química.\n");
+                
+                try {
+                    const tuboEnsayo = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.TuboDeEnsayo && !m.EnUso);
+                    const pipeta = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.Pipeta && !m.EnUso);
+                    const gradilla = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.Gradilla && !m.EnUso);
+
+                    const nitratoPlata = this.Reactivos.find(r => r.Tipo === Reactivo.NitratoDePlata);
+                    const cloruroSodio = this.Reactivos.find(r => r.Tipo === Reactivo.CloruroDeSodio);
+
+                    if (!tuboEnsayo || !pipeta || !nitratoPlata || !cloruroSodio) {
+                        throw new Error("Faltan materiales o reactivos para realizar el experimento");
+                    }
+
+                    tuboEnsayo.usar();
+                    pipeta.usar();
+                    if (gradilla) gradilla.usar();
+
+                    addToLog("\nPasos del experimento:");
+                    addToLog("1. Añadir 5 mL de solución de nitrato de plata al tubo de ensayo");
+                    nitratoPlata.usarReactivo(5);
+
+                    addToLog("2. Añadir lentamente 5 mL de solución de cloruro de sodio");
+                    cloruroSodio.usarReactivo(5);
+
+                    addToLog("\nResultado: Se observa la formación de un precipitado blanco de cloruro de plata.", "result");
+                    addToLog("Explicación: AgNO₃ + NaCl → AgCl↓ + NaNO₃", "explanation");
+                    addToLog("El cloruro de plata (AgCl) es insoluble en agua.", "explanation");
+
+                    tuboEnsayo.dejarDeUsar();
+                    pipeta.dejarDeUsar();
+                    if (gradilla) gradilla.dejarDeUsar();
+                } catch (error) {
+                    addToLog(`Error: ${error.message}`, "error");
+                }
+            }
+
+            // Experimento 3: Descomposición del Agua Oxigenada
+            realizarExperimentoDescomposicion() {
+                document.getElementById('contentTitle').textContent = 'Experimento: Descomposición Catalítica';
+                clearLog();
+                addToLog("=== Experimento: Descomposición Catalítica del Agua Oxigenada ===");
+                addToLog("Objetivo: Observar la descomposición acelerada del peróxido de hidrógeno usando un catalizador.\n");
+                
+                try {
+                    const matraz = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.MatrazErlenmeyer && !m.EnUso);
+                    const pipeta = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.Pipeta && !m.EnUso);
+                    const gotero = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.Gotero && !m.EnUso);
+
+                    const aguaOxigenada = this.Reactivos.find(r => r.Tipo === Reactivo.AguaOxigenada);
+                    const permanganato = this.Reactivos.find(r => r.Tipo === Reactivo.PermanganatoDePotasio);
+                    const dicromato = this.Reactivos.find(r => r.Tipo === Reactivo.DicromatoDePotasio);
+
+                    if (!matraz || !pipeta || !gotero || !aguaOxigenada || !permanganato) {
+                        throw new Error("Faltan materiales o reactivos para realizar el experimento");
+                    }
+
+                    matraz.usar();
+                    pipeta.usar();
+                    gotero.usar();
+
+                    addToLog("\nPasos del experimento:");
+                    addToLog("1. Añadir 20 mL de agua oxigenada al matraz Erlenmeyer");
+                    aguaOxigenada.usarReactivo(20);
+
+                    addToLog("2. Añadir una pequeña cantidad de permanganato de potasio");
+                    permanganato.usarReactivo(0.5);
+
+                    addToLog("\nResultado: Se observa efervescencia vigorosa y desprendimiento de gas.", "result");
+                    addToLog("Explicación: 2H₂O₂ → 2H₂O + O₂↑", "explanation");
+                    addToLog("El permanganato actúa como catalizador acelerando la descomposición.", "explanation");
+
+                    matraz.dejarDeUsar();
+                    pipeta.dejarDeUsar();
+                    gotero.dejarDeUsar();
+                } catch (error) {
+                    addToLog(`Error: ${error.message}`, "error");
+                }
+            }
+
+            // Experimento 4: Reacción Redox (Permanganometría)
+            realizarExperimentoRedox() {
+                document.getElementById('contentTitle').textContent = 'Experimento: Valoración Redox';
+                clearLog();
+                addToLog("=== Experimento: Valoración Redox (Permanganometría) ===");
+                addToLog("Objetivo: Determinar la concentración de oxalato de sodio mediante una valoración redox.\n");
+                
+                try {
+                    const matraz = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.MatrazErlenmeyer && !m.EnUso);
+                    const bureta = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.Bureta && !m.EnUso);
+                    const pipeta = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.Pipeta && !m.EnUso);
+                    const agitador = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.VarillaDeAgitacion && !m.EnUso);
+
+                    const permanganato = this.Reactivos.find(r => r.Tipo === Reactivo.PermanganatoDePotasio);
+                    const oxalato = this.Reactivos.find(r => r.Tipo === Reactivo.OxalatoDeSodio);
+                    const acidoSulfurico = this.Reactivos.find(r => r.Tipo === Reactivo.AcidoSulfurico);
+
+                    if (!matraz || !bureta || !pipeta || !permanganato || !oxalato || !acidoSulfurico) {
+                        throw new Error("Faltan materiales o reactivos para realizar el experimento");
+                    }
+
+                    matraz.usar();
+                    bureta.usar();
+                    pipeta.usar();
+                    if (agitador) agitador.usar();
+
+                    addToLog("\nPasos del experimento:");
+                    addToLog("1. Preparar solución de oxalato de sodio en el matraz");
+                    oxalato.usarReactivo(0.5);
+                    addToLog("2. Añadir 10 mL de ácido sulfúrico para acidificar el medio");
+                    acidoSulfurico.usarReactivo(10);
+
+                    addToLog("3. Llenar la bureta con solución de permanganato de potasio");
+                    permanganato.usarReactivo(50);
+
+                    addToLog("4. Valorar hasta cambio de color (rosa persistente)");
+                    addToLog("\nResultado: La solución pasa de incolora a rosa pálido permanente.", "result");
+                    addToLog("Explicación: 2MnO₄⁻ + 5C₂O₄²⁻ + 16H⁺ → 2Mn²⁺ + 10CO₂ + 8H₂O", "explanation");
+                    addToLog("El permanganato (MnO₄⁻) se reduce a Mn²⁺ (incoloro) hasta que todo el oxalato se oxida.", "explanation");
+
+                    matraz.dejarDeUsar();
+                    bureta.dejarDeUsar();
+                    pipeta.dejarDeUsar();
+                    if (agitador) agitador.dejarDeUsar();
+                } catch (error) {
+                    addToLog(`Error: ${error.message}`, "error");
+                }
+            }
+
+            // Experimento 5: Cambio de Color en Reacción de Complejos
+            realizarExperimentoComplejos() {
+                document.getElementById('contentTitle').textContent = 'Experimento: Complejos de Cobalto';
+                clearLog();
+                addToLog("=== Experimento: Formación de Complejos de Cobalto ===");
+                addToLog("Objetivo: Observar cambios de color en la formación de complejos metálicos.\n");
+                
+                try {
+                    const tuboEnsayo1 = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.TuboDeEnsayo && !m.EnUso);
+                    const tuboEnsayo2 = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.TuboDeEnsayo && m !== tuboEnsayo1 && !m.EnUso);
+                    const pipeta = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.Pipeta && !m.EnUso);
+                    const gradilla = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.Gradilla && !m.EnUso);
+
+                    const cloruroCobalto = this.Reactivos.find(r => r.Tipo === Reactivo.CloruroDeCobalto);
+                    const tiocianato = this.Reactivos.find(r => r.Tipo === Reactivo.TiocianatoDePotasio);
+                    const aguaDestilada = this.Reactivos.find(r => r.Tipo === Reactivo.AguaDestilada);
+
+                    if (!tuboEnsayo1 || !tuboEnsayo2 || !pipeta || !cloruroCobalto || !tiocianato || !aguaDestilada) {
+                        throw new Error("Faltan materiales o reactivos para realizar el experimento");
+                    }
+
+                    tuboEnsayo1.usar();
+                    tuboEnsayo2.usar();
+                    pipeta.usar();
+                    if (gradilla) gradilla.usar();
+
+                    addToLog("\nPasos del experimento:");
+                    addToLog("1. Preparar solución de CoCl₂ en el primer tubo de ensayo");
+                    cloruroCobalto.usarReactivo(0.1);
+                    aguaDestilada.usarReactivo(5);
+
+                    addToLog("2. Preparar solución de KSCN en el segundo tubo de ensayo");
+                    tiocianato.usarReactivo(0.1);
+                    aguaDestilada.usarReactivo(5);
+
+                    addToLog("3. Mezclar ambas soluciones");
+
+                    addToLog("\nResultado: La solución cambia de color rosado a azul intenso.", "result");
+                    addToLog("Explicación: Co²⁺ + 4SCN⁻ → [Co(SCN)₄]²⁻ (complejo azul)", "explanation");
+                    addToLog("Los iones de cobalto forman complejos coloreados con tiocianato.", "explanation");
+
+                    tuboEnsayo1.dejarDeUsar();
+                    tuboEnsayo2.dejarDeUsar();
+                    pipeta.dejarDeUsar();
+                    if (gradilla) gradilla.dejarDeUsar();
+                } catch (error) {
+                    addToLog(`Error: ${error.message}`, "error");
+                }
+            }
+
+            // Experimento 6: Cristalización de Sulfato de Cobre
+            realizarExperimentoCristalizacion() {
+                document.getElementById('contentTitle').textContent = 'Experimento: Cristalización';
+                clearLog();
+                addToLog("=== Experimento: Cristalización de Sulfato de Cobre ===");
+                addToLog("Objetivo: Obtener cristales de sulfato de cobre a partir de una solución saturada.\n");
+                
+                try {
+                    const vaso250 = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.VasoDePrecipitados && m.Volumen === 250 && !m.EnUso);
+                    const varilla = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.VarillaDeAgitacion && !m.EnUso);
+                    const capsula = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.CapsulaDePorcelana && !m.EnUso);
+                    const mechero = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.MecheroBunsen && !m.EnUso);
+                    const tela = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.TelaMetalica && !m.EnUso);
+                    const tripe = this.Materiales.find(m => m.Tipo === MaterialLaboratorio.SoporteUniversal && !m.EnUso);
+
+                    const sulfatoCobre = this.Reactivos.find(r => r.Tipo === Reactivo.SulfatoDeCobre);
+                    const aguaDestilada = this.Reactivos.find(r => r.Tipo === Reactivo.AguaDestilada);
+
+                    if (!vaso250 || !sulfatoCobre || !aguaDestilada) {
+                        throw new Error("Faltan materiales o reactivos para realizar el experimento");
+                    }
+
+                    vaso250.usar();
+                    if (varilla) varilla.usar();
+                    if (capsula) capsula.usar();
+                    if (mechero) mechero.usar();
+                    if (tela) tela.usar();
+                    if (tripe) tripe.usar();
+
+                    addToLog("\nPasos del experimento:");
+                    addToLog("1. Disolver 50 g de sulfato de cobre en 100 mL de agua caliente");
+                    sulfatoCobre.usarReactivo(50);
+                    aguaDestilada.usarReactivo(100);
+
+                    addToLog("2. Filtrar la solución caliente");
+                    addToLog("3. Dejar enfriar lentamente para favorecer la cristalización");
+
+                    addToLog("\nResultado: Se obtienen cristales azules de CuSO₄·5H₂O.", "result");
+                    addToLog("Explicación: Al enfriar una solución saturada, el soluto excede su solubilidad y cristaliza.", "explanation");
+
+                    vaso250.dejarDeUsar();
+                    if (varilla) varilla.dejarDeUsar();
+                    if (capsula) capsula.dejarDeUsar();
+                    if (mechero) mechero.dejarDeUsar();
+                    if (tela) tela.dejarDeUsar();
+                    if (tripe) tripe.dejarDeUsar();
+                } catch (error) {
+                    addToLog(`Error: ${error.message}`, "error");
+                }
+            }
+
+            limpiarMateriales() {
+                addToLog("\nLimpiando todos los materiales...");
+                this.Materiales.forEach(material => {
+                    if (!material.Limpio) {
+                        material.limpiar();
+                    }
+                });
+                addToLog("Todos los materiales están limpios.");
+            }
+        }
+
+        // Funciones auxiliares para manejar el log
+        function addToLog(message, type = "info") {
+            const log = document.getElementById('experimentLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            
+            switch(type) {
+                case "title":
+                    const title = document.createElement('div');
+                    title.className = 'log-title';
+                    title.textContent = message;
+                    entry.appendChild(title);
+                    break;
+                case "step":
+                    const step = document.createElement('div');
+                    step.className = 'log-step';
+                    step.textContent = message;
+                    entry.appendChild(step);
+                    break;
+                case "result":
+                    const result = document.createElement('div');
+                    result.className = 'log-result';
+                    result.textContent = message;
+                    entry.appendChild(result);
+                    break;
+                case "explanation":
+                    const explanation = document.createElement('div');
+                    explanation.className = 'log-explanation';
+                    explanation.textContent = message;
+                    entry.appendChild(explanation);
+                    break;
+                case "error":
+                    const error = document.createElement('div');
+                    error.className = 'log-error';
+                    error.textContent = message;
+                    entry.appendChild(error);
+                    break;
+                default:
+                    entry.textContent = message;
+            }
+            
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('experimentLog').innerHTML = '';
+        }
+
+        // Inicialización del laboratorio
+        const laboratorio = new Laboratorio("Laboratorio de Química Avanzada");
+
+        // Event listeners para los botones
+        document.getElementById('showInventory').addEventListener('click', () => {
+            laboratorio.mostrarInventario();
+        });
+
+        document.getElementById('neutralizationExp').addEventListener('click', () => {
+            laboratorio.realizarExperimentoNeutralizacion();
+        });
+
+        document.getElementById('precipitationExp').addEventListener('click', () => {
+            laboratorio.realizarExperimentoPrecipitacion();
+        });
+
+        document.getElementById('decompositionExp').addEventListener('click', () => {
+            laboratorio.realizarExperimentoDescomposicion();
+        });
+
+        document.getElementById('redoxExp').addEventListener('click', () => {
+            laboratorio.realizarExperimentoRedox();
+        });
+
+        document.getElementById('complexExp').addEventListener('click', () => {
+            laboratorio.realizarExperimentoComplejos();
+        });
+
+        document.getElementById('crystallizationExp').addEventListener('click', () => {
+            laboratorio.realizarExperimentoCristalizacion();
+        });
+
+        document.getElementById('cleanMaterials').addEventListener('click', () => {
+            laboratorio.limpiarMateriales();
+        });
+
+        document.getElementById('exit').addEventListener('click', () => {
+            alert("Saliendo del laboratorio virtual...");
+        });
+
+        // Mensaje de bienvenida
+        addToLog("Bienvenido al Laboratorio Virtual Avanzado\n");
+        addToLog("Seleccione una opción del menú para comenzar.");
+    </script>
+</body>
+</html>
